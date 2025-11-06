@@ -1,5 +1,4 @@
 import copy
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
@@ -8,7 +7,6 @@ from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_sc
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset, DataLoader
-from sklearn.utils.class_weight import compute_class_weight
 
 class model(nn.Module):
     def __init__(self):
