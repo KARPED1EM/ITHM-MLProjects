@@ -1,0 +1,3 @@
+scenario,threshold,test_auc,test_pr_auc,precision,recall,f1,artifact_base
+lr_score_chaser,0.5,0.8849,0.674,0.4057,0.8113,0.5409,artifacts\lr_score_chaser
+lr_validation_guardian,0.5,0.8792,0.6668,0.4,0.7925,0.5316,artifacts\lr_validation_guardian
