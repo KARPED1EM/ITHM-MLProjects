@@ -1,0 +1,4 @@
+family,all_results_path,top_results_path,experiment_count
+linear,artifacts\fair_bruteforce\linear\data\all_results.csv,artifacts\fair_bruteforce\linear\data\top10_results.csv,56
+tree,artifacts\fair_bruteforce\tree\data\all_results.csv,artifacts\fair_bruteforce\tree\data\top10_results.csv,240
+neural,artifacts\fair_bruteforce\neural\data\all_results.csv,artifacts\fair_bruteforce\neural\data\top10_results.csv,36
