@@ -37,34 +37,22 @@ class DataSet(Dataset):
 
 def load_data():
     df_train = pd.read_csv('../data/train.csv')
-    df_test = pd.read_csv('../data/test.csv')
     business_map = {'Non-Travel': 0, 'Travel_Rarely': 1, 'Travel_Frequently': 2}
     df_train['BusinessTravel'] = df_train['BusinessTravel'].map(business_map)
-    df_test['BusinessTravel'] = df_test['BusinessTravel'].map(business_map)
     df_train.drop(['EmployeeNumber', 'Over18', 'StandardHours'], axis=1, inplace=True)
-    df_test.drop(['EmployeeNumber', 'Over18', 'StandardHours'], axis=1, inplace=True)
     categorical = ['Department', 'EducationField', 'Gender', 'JobRole', 'MaritalStatus', 'OverTime']
     df_train = pd.get_dummies(df_train, columns=categorical, drop_first=True)
-    df_test = pd.get_dummies(df_test, columns=categorical, drop_first=True)
-    common_cols = df_train.columns.intersection(df_test.columns)
-    df_train = df_train[common_cols]
-    df_test = df_test[common_cols]
     feature = df_train.drop(['Attrition'], axis=1).values
     label = df_train['Attrition'].values
-    test_feature = df_test.drop(['Attrition'], axis=1).values
-    test_label = df_test['Attrition'].values
     x_train, x_test, y_train, y_test = train_test_split(feature, label, test_size=0.2)
     scaler = StandardScaler()
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
-    test_feature = scaler.transform(test_feature)
     train_dataset = DataSet(x_train, y_train)
     val_dataset = DataSet(x_test, y_test)
-    test_dataset = DataSet(test_feature, test_label)
     train_data_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
     val_data_loader = DataLoader(dataset=val_dataset, batch_size=128, shuffle=False)
-    test_data_loader = DataLoader(dataset=test_dataset, batch_size=128 , shuffle=False)
-    return train_data_loader, val_data_loader, test_data_loader
+    return train_data_loader, val_data_loader
 
 def model_train(model, train_data_loader, val_data_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -122,11 +110,11 @@ def model_train(model, train_data_loader, val_data_loader):
             best_model = copy.deepcopy(model.state_dict())
             print(f"🎉 New best F1: {best_acc:.4f}, saving model...")
 
-    torch.save(best_model, '../model/best_model2.pth')
+    torch.save(best_model, '../model/best_model.pth')
     print(f"Training finished. Best Val F1: {best_f1:.4f}")
     print('*' * 20)
 
 if __name__ == '__main__':
-    train, val, test= load_data()
+    train, val = load_data()
     model = Model()
     model_train(model, train, val)
