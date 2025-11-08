@@ -282,18 +282,22 @@ def detailed_classification_report(
     rec_0 = tn / (tn + fp) if (tn + fp) > 0 else 0.0
     f1_0 = 2 * prec_0 * rec_0 / (prec_0 + rec_0) if (prec_0 + rec_0) > 0 else 0.0
     support_0 = int(tn + fp)
-    lines.append("    Stay        {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
-        prec_0, rec_0, f1_0, support_0
-    ))
+    lines.append(
+        "    Stay        {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+            prec_0, rec_0, f1_0, support_0
+        )
+    )
 
     # Class 1 (Leave/Attrition)
     prec_1 = precision
     rec_1 = recall
     f1_1 = f1
     support_1 = int(tp + fn)
-    lines.append("    Leave       {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
-        prec_1, rec_1, f1_1, support_1
-    ))
+    lines.append(
+        "    Leave       {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+            prec_1, rec_1, f1_1, support_1
+        )
+    )
     lines.append("    " + "-" * 58)
 
     # Weighted average
@@ -301,9 +305,11 @@ def detailed_classification_report(
     prec_avg = (prec_0 * support_0 + prec_1 * support_1) / total
     rec_avg = (rec_0 * support_0 + rec_1 * support_1) / total
     f1_avg = (f1_0 * support_0 + f1_1 * support_1) / total
-    lines.append("    avg/total   {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
-        prec_avg, rec_avg, f1_avg, total
-    ))
+    lines.append(
+        "    avg/total   {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+            prec_avg, rec_avg, f1_avg, total
+        )
+    )
     lines.append("")
 
     # Overall metrics
@@ -394,28 +400,38 @@ def run_sampler_sweeps(
                 # F1 statistics
                 "cv_f1_mean": grid.cv_results_["mean_test_f1"][best_idx],
                 "cv_f1_std": grid.cv_results_["std_test_f1"][best_idx],
-                "cv_f1_min": grid.cv_results_["mean_test_f1"][best_idx] - grid.cv_results_["std_test_f1"][best_idx],
-                "cv_f1_max": grid.cv_results_["mean_test_f1"][best_idx] + grid.cv_results_["std_test_f1"][best_idx],
+                "cv_f1_min": grid.cv_results_["mean_test_f1"][best_idx]
+                - grid.cv_results_["std_test_f1"][best_idx],
+                "cv_f1_max": grid.cv_results_["mean_test_f1"][best_idx]
+                + grid.cv_results_["std_test_f1"][best_idx],
                 # Precision statistics
                 "cv_precision_mean": grid.cv_results_["mean_test_precision"][best_idx],
                 "cv_precision_std": grid.cv_results_["std_test_precision"][best_idx],
-                "cv_precision_min": grid.cv_results_["mean_test_precision"][best_idx] - grid.cv_results_["std_test_precision"][best_idx],
-                "cv_precision_max": grid.cv_results_["mean_test_precision"][best_idx] + grid.cv_results_["std_test_precision"][best_idx],
+                "cv_precision_min": grid.cv_results_["mean_test_precision"][best_idx]
+                - grid.cv_results_["std_test_precision"][best_idx],
+                "cv_precision_max": grid.cv_results_["mean_test_precision"][best_idx]
+                + grid.cv_results_["std_test_precision"][best_idx],
                 # Recall statistics
                 "cv_recall_mean": grid.cv_results_["mean_test_recall"][best_idx],
                 "cv_recall_std": grid.cv_results_["std_test_recall"][best_idx],
-                "cv_recall_min": grid.cv_results_["mean_test_recall"][best_idx] - grid.cv_results_["std_test_recall"][best_idx],
-                "cv_recall_max": grid.cv_results_["mean_test_recall"][best_idx] + grid.cv_results_["std_test_recall"][best_idx],
+                "cv_recall_min": grid.cv_results_["mean_test_recall"][best_idx]
+                - grid.cv_results_["std_test_recall"][best_idx],
+                "cv_recall_max": grid.cv_results_["mean_test_recall"][best_idx]
+                + grid.cv_results_["std_test_recall"][best_idx],
                 # ROC-AUC statistics
                 "cv_roc_auc_mean": grid.cv_results_["mean_test_roc_auc"][best_idx],
                 "cv_roc_auc_std": grid.cv_results_["std_test_roc_auc"][best_idx],
-                "cv_roc_auc_min": grid.cv_results_["mean_test_roc_auc"][best_idx] - grid.cv_results_["std_test_roc_auc"][best_idx],
-                "cv_roc_auc_max": grid.cv_results_["mean_test_roc_auc"][best_idx] + grid.cv_results_["std_test_roc_auc"][best_idx],
+                "cv_roc_auc_min": grid.cv_results_["mean_test_roc_auc"][best_idx]
+                - grid.cv_results_["std_test_roc_auc"][best_idx],
+                "cv_roc_auc_max": grid.cv_results_["mean_test_roc_auc"][best_idx]
+                + grid.cv_results_["std_test_roc_auc"][best_idx],
                 # Accuracy statistics
                 "cv_accuracy_mean": grid.cv_results_["mean_test_accuracy"][best_idx],
                 "cv_accuracy_std": grid.cv_results_["std_test_accuracy"][best_idx],
-                "cv_accuracy_min": grid.cv_results_["mean_test_accuracy"][best_idx] - grid.cv_results_["std_test_accuracy"][best_idx],
-                "cv_accuracy_max": grid.cv_results_["mean_test_accuracy"][best_idx] + grid.cv_results_["std_test_accuracy"][best_idx],
+                "cv_accuracy_min": grid.cv_results_["mean_test_accuracy"][best_idx]
+                - grid.cv_results_["std_test_accuracy"][best_idx],
+                "cv_accuracy_max": grid.cv_results_["mean_test_accuracy"][best_idx]
+                + grid.cv_results_["std_test_accuracy"][best_idx],
                 "best_params": json.dumps(grid.best_params_),
             }
         )
@@ -524,7 +540,10 @@ def evaluate_on_holdout(
         y_test, preds_default, proba, f"{dataset_name} (Default Threshold 0.50)"
     )
     detailed_report_best = detailed_classification_report(
-        y_test, best_preds, proba, f"{dataset_name} (Best Threshold {best_threshold:.2f})"
+        y_test,
+        best_preds,
+        proba,
+        f"{dataset_name} (Best Threshold {best_threshold:.2f})",
     )
 
     predictions = pd.DataFrame(
@@ -623,10 +642,22 @@ def plot_cv_vs_test_metrics(
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    bars1 = ax.bar(x - width/2, cv_values, width, label="CV (mean)",
-                   color="#4c72b0", yerr=cv_stds, capsize=5)
-    bars2 = ax.bar(x + width/2, test_values, width, label="Test (best threshold)",
-                   color="#55a868")
+    bars1 = ax.bar(
+        x - width / 2,
+        cv_values,
+        width,
+        label="CV (mean)",
+        color="#4c72b0",
+        yerr=cv_stds,
+        capsize=5,
+    )
+    bars2 = ax.bar(
+        x + width / 2,
+        test_values,
+        width,
+        label="Test (best threshold)",
+        color="#55a868",
+    )
 
     ax.set_ylabel("Score")
     ax.set_xlabel("Metrics")
@@ -640,9 +671,14 @@ def plot_cv_vs_test_metrics(
     for bars in [bars1, bars2]:
         for bar in bars:
             height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{height:.3f}',
-                   ha='center', va='bottom', fontsize=8)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f"{height:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
     fig.tight_layout()
     fig.savefig(path, dpi=200)
@@ -677,10 +713,19 @@ def plot_metrics_detailed_comparison(
             test_val = test_metrics["roc_auc"]
 
         # Plot CV as error bar
-        ax.errorbar([0], [cv_mean], yerr=[cv_std], fmt='o', markersize=10,
-                   capsize=10, capthick=2, color="#4c72b0", label="CV")
+        ax.errorbar(
+            [0],
+            [cv_mean],
+            yerr=[cv_std],
+            fmt="o",
+            markersize=10,
+            capsize=10,
+            capthick=2,
+            color="#4c72b0",
+            label="CV",
+        )
         # Plot test as point
-        ax.plot([1], [test_val], 'o', markersize=10, color="#55a868", label="Test")
+        ax.plot([1], [test_val], "o", markersize=10, color="#55a868", label="Test")
 
         ax.set_xlim(-0.5, 1.5)
         ax.set_ylim(0, 1.05)
@@ -688,12 +733,17 @@ def plot_metrics_detailed_comparison(
         ax.set_xticklabels(["CV", "Test"])
         ax.set_ylabel("Score")
         ax.set_title(metrics_names[idx])
-        ax.grid(axis='y', alpha=0.3)
+        ax.grid(axis="y", alpha=0.3)
 
         # Add value annotations
-        ax.text(0, cv_mean + cv_std + 0.02, f"{cv_mean:.3f}±{cv_std:.3f}",
-               ha='center', fontsize=8)
-        ax.text(1, test_val + 0.02, f"{test_val:.3f}", ha='center', fontsize=8)
+        ax.text(
+            0,
+            cv_mean + cv_std + 0.02,
+            f"{cv_mean:.3f}±{cv_std:.3f}",
+            ha="center",
+            fontsize=8,
+        )
+        ax.text(1, test_val + 0.02, f"{test_val:.3f}", ha="center", fontsize=8)
 
     fig.suptitle("Detailed Metrics Comparison: CV (mean±std) vs Test", fontsize=14)
     fig.tight_layout()
@@ -717,9 +767,9 @@ def plot_sampler_summary(summary_df: pd.DataFrame, path: Path) -> None:
     ax.set_xlabel("Sampler")
     ax.set_title("Sampler impact on CV F1")
     for patch in ax.patches:
-        height = patch.get_height()
+        height = patch.get_height()  # type: ignore
         ax.text(
-            patch.get_x() + patch.get_width() / 2,
+            patch.get_x() + patch.get_width() / 2,  # type: ignore
             height + 0.001,
             f"{height:.3f}",
             ha="center",
@@ -773,7 +823,7 @@ def plot_pr_curve(
     path: Path,
 ) -> None:
     plt.figure(figsize=(5, 4))
-    plt.plot(recall, precision, label="PR curve")
+    plt.plot(recall, precision, label="PR curve")  # type: ignore
     plt.scatter(
         [best_recall],
         [best_precision],
@@ -795,7 +845,7 @@ def plot_roc_curve_holdout(
     fpr: Iterable[float], tpr: Iterable[float], auc_score: float, path: Path
 ) -> None:
     plt.figure(figsize=(5, 4))
-    plt.plot(fpr, tpr, label=f"ROC curve (AUC={auc_score:.3f})", color="#4c72b0")
+    plt.plot(fpr, tpr, label=f"ROC curve (AUC={auc_score:.3f})", color="#4c72b0")  # type: ignore
     plt.plot([0, 1], [0, 1], linestyle="--", color="gray", label="random")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
@@ -829,7 +879,7 @@ def plot_calibration(
     prob_true: Iterable[float], prob_pred: Iterable[float], path: Path
 ) -> None:
     plt.figure(figsize=(5, 4))
-    plt.plot(prob_pred, prob_true, marker="o", label="model calibration")
+    plt.plot(prob_pred, prob_true, marker="o", label="model calibration")  # type: ignore
     plt.plot([0, 1], [0, 1], linestyle="--", color="gray", label="perfect calibration")
     plt.xlabel("Predicted probability mean")
     plt.ylabel("Observed frequency")
@@ -916,11 +966,11 @@ def persist_artifacts(
     summary_df.to_csv(DATA_ARTIFACT_DIR / "sampler_summary.csv", index=False)
     cv_df.to_csv(DATA_ARTIFACT_DIR / "sampler_grid_results.csv", index=False)
     coef_frame.to_csv(DATA_ARTIFACT_DIR / "best_model_coefficients.csv", index=False)
-    evaluation["predictions"].to_csv(
+    evaluation["predictions"].to_csv(  # type: ignore
         DATA_ARTIFACT_DIR / "best_model_test_predictions.csv",
         index=False,
     )
-    evaluation["threshold_frame"].to_csv(
+    evaluation["threshold_frame"].to_csv(  # type: ignore
         DATA_ARTIFACT_DIR / "threshold_sweep.csv", index=False
     )
 
@@ -947,26 +997,30 @@ def persist_artifacts(
         json.dump(cv_metrics, fp, indent=2)
 
     # Save detailed classification reports to text files
-    with open(DATA_ARTIFACT_DIR / "detailed_report_default.txt", "w", encoding="utf-8") as fp:
-        fp.write(evaluation["detailed_report_default"])
-    with open(DATA_ARTIFACT_DIR / "detailed_report_best.txt", "w", encoding="utf-8") as fp:
-        fp.write(evaluation["detailed_report_best"])
+    with open(
+        DATA_ARTIFACT_DIR / "detailed_report_default.txt", "w", encoding="utf-8"
+    ) as fp:
+        fp.write(evaluation["detailed_report_default"])  # type: ignore
+    with open(
+        DATA_ARTIFACT_DIR / "detailed_report_best.txt", "w", encoding="utf-8"
+    ) as fp:
+        fp.write(evaluation["detailed_report_best"])  # type: ignore
 
     # Generate all plots
     plot_sampler_summary(summary_df, FIG_ARTIFACT_DIR / "sampler_f1.png")
     plot_cv_vs_test_metrics(
         cv_metrics,
-        evaluation,
+        evaluation,  # type: ignore
         FIG_ARTIFACT_DIR / "cv_vs_test_metrics.png",
     )
     plot_metrics_detailed_comparison(
         cv_metrics,
-        evaluation,
+        evaluation,  # type: ignore
         FIG_ARTIFACT_DIR / "metrics_detailed_comparison.png",
     )
     plot_threshold_curve(
-        evaluation["threshold_frame"],
-        evaluation["best_threshold"],
+        evaluation["threshold_frame"],  # type: ignore
+        evaluation["best_threshold"],  # type: ignore
         FIG_ARTIFACT_DIR / "threshold_sweep.png",
     )
     plot_confusion(
@@ -974,25 +1028,25 @@ def persist_artifacts(
         FIG_ARTIFACT_DIR / "confusion_matrix.png",
     )
     plot_pr_curve(
-        evaluation["precision"],
-        evaluation["recall"],
-        evaluation["best_precision"],
-        evaluation["best_recall"],
+        evaluation["precision"],  # type: ignore
+        evaluation["recall"],  # type: ignore
+        evaluation["best_precision"],  # type: ignore
+        evaluation["best_recall"],  # type: ignore
         FIG_ARTIFACT_DIR / "precision_recall.png",
     )
     plot_roc_curve_holdout(
-        evaluation["fpr"],
-        evaluation["tpr"],
-        evaluation["roc_auc"],
+        evaluation["fpr"],  # type: ignore
+        evaluation["tpr"],  # type: ignore
+        evaluation["roc_auc"],  # type: ignore
         FIG_ARTIFACT_DIR / "roc_curve.png",
     )
     plot_probability_density(
-        evaluation["predictions"],
+        evaluation["predictions"],  # type: ignore
         FIG_ARTIFACT_DIR / "probability_density.png",
     )
     plot_calibration(
-        evaluation["calibration_prob_true"],
-        evaluation["calibration_prob_pred"],
+        evaluation["calibration_prob_true"],  # type: ignore
+        evaluation["calibration_prob_pred"],  # type: ignore
         FIG_ARTIFACT_DIR / "calibration_curve.png",
     )
     plot_coefficient_importance(
@@ -1065,8 +1119,8 @@ def main() -> None:
             X_test = X_test.drop(columns=[ID_COLUMN])
 
         preprocessor = build_preprocessor(train_df)
-        summary_df, cv_df, best_sampler_name, best_estimator, cv_metrics = run_sampler_sweeps(
-            X_train, y_train, preprocessor, logger
+        summary_df, cv_df, best_sampler_name, best_estimator, cv_metrics = (
+            run_sampler_sweeps(X_train, y_train, preprocessor, logger)
         )
 
         coef_frame = extract_coefficient_frame(best_estimator)
