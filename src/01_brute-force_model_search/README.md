@@ -4,8 +4,6 @@
 
 > 共尝试 332 种组合（KFold），在 i9-13900HX / 64GB RAM 下运行 70 分钟左右
 
-## 产物结构
-
 ```
 src/01_brute-force_model_search/
 ├── artifacts/
