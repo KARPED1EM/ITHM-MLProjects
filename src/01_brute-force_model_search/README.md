@@ -1,4 +1,4 @@
-# AttriPredict – Brute-Force Model Search
+# 01 · Brute-Force Model Search
 
 基于模型家族执行一次系统性的暴力搜索，涵盖 11 种模型类型、每个家族 4 套特征处理流程，以及两个固定的随机种子（42 和 2025）。线性模型采用激进的特征工程策略，树模型尽量保持接近原始信号，而神经网络则更关注特征缩放及其与 SMOTE 的结合
 

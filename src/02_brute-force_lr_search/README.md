@@ -1,4 +1,4 @@
-# AttriPredict - Brute-Force LR Search
+# 02 · Brute-Force LR Search
 
 从穷举搜索中筛选出四个逻辑回归（LR）模型组合，每个都服务于不同的生产防护目标：
 
