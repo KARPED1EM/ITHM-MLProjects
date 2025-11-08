@@ -1,0 +1,5 @@
+scenario,threshold,test_auc,test_pr_auc,precision,recall,f1,artifact_base
+lr_score_chaser,0.5,0.8853,0.6838,0.4019,0.8113,0.5375,artifacts\lr_score_chaser
+lr_prod_auc_guardian,0.815,0.8789,0.6355,0.6222,0.5283,0.5714,artifacts\lr_prod_auc_guardian
+lr_prod_precision_guardian,0.735,0.8459,0.6203,0.5472,0.5472,0.5472,artifacts\lr_prod_precision_guardian
+lr_prod_recall_guardian,0.5,0.7246,0.3251,0.1974,0.8491,0.3203,artifacts\lr_prod_recall_guardian

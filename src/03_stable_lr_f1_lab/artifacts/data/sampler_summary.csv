@@ -1,0 +1,6 @@
+sampler,best_cv_f1,best_cv_f1_std,best_cv_precision,best_cv_recall,best_cv_auc,best_params
+none,0.5709412017251136,0.06352999609960429,0.7014775176514306,0.4828571428571428,0.8247248568444221,"{""clf__C"": 3.0, ""clf__class_weight"": null, ""clf__penalty"": ""l1"", ""clf__solver"": ""liblinear""}"
+borderline_smote,0.5292918940817355,0.042199162678074144,0.4342659521254186,0.6795238095238095,0.8205331775875255,"{""clf__C"": 0.3, ""clf__class_weight"": null, ""clf__penalty"": ""l2"", ""clf__solver"": ""lbfgs""}"
+smote,0.5034890321549954,0.04740297684607824,0.39762777453213927,0.690952380952381,0.8228125781060565,"{""clf__C"": 0.3, ""clf__class_weight"": null, ""clf__penalty"": ""l1"", ""clf__solver"": ""liblinear""}"
+random_over,0.4984707940573411,0.054980324962308924,0.3929106587683623,0.6858730158730159,0.8087896545613937,"{""clf__C"": 0.3, ""clf__class_weight"": null, ""clf__penalty"": ""l2"", ""clf__solver"": ""lbfgs""}"
+adasyn,0.49605158740035565,0.05042784821343235,0.3825423906150081,0.7082539682539682,0.8098335944640291,"{""clf__C"": 1.0, ""clf__class_weight"": ""balanced"", ""clf__penalty"": ""l1"", ""clf__solver"": ""liblinear""}"
