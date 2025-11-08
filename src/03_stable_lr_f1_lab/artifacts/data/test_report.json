@@ -1,0 +1,23 @@
+{
+  "default_threshold_f1": 0.6021505376344086,
+  "default_precision": 0.7,
+  "default_recall": 0.5283018867924528,
+  "default_accuracy": 0.8942857142857142,
+  "best_threshold": 0.4,
+  "best_threshold_f1": 0.6226415094339622,
+  "best_precision": 0.6226415094339622,
+  "best_recall": 0.6226415094339622,
+  "best_accuracy": 0.8857142857142857,
+  "roc_auc": 0.8850136585985643,
+  "average_precision": 0.6778989690769588,
+  "confusion_matrix": [
+    [
+      277,
+      20
+    ],
+    [
+      20,
+      33
+    ]
+  ]
+}

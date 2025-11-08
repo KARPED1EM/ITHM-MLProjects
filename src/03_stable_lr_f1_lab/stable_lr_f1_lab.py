@@ -1,22 +1,3 @@
-"""
-Stable LR F1 Lab
-----------------
-
-Reimplements the top configuration surfaced in the brute-force ranking file:
-scaled numerical features + log1p transforms + OHE categoricals powered by a
-logistic regression core.  The only automated choices that remain are:
-
-1. A tiny hyper-parameter sweep over regularization strength/penalty.
-2. A sampler sweep over a handful of realistic up-sampling options.
-
-The rest (feature crafting, manual tweaks) lives in `add_manual_features`.
-
-Running this module will generate fresh artifacts under
-`src/03_stable_lr_f1_lab/artifacts/`:
-    - data/*.csv : CV grids, sampler summaries, threshold sweeps, predictions.
-    - figures/*.png : sampler bars, threshold curves, PR curves, confusion matrices.
-    - models/*.pkl : the best pipeline ready for manual experiments.
-"""
 from __future__ import annotations
 
 import json
@@ -117,9 +98,8 @@ def add_manual_features(df: pd.DataFrame) -> pd.DataFrame:
     level = (engineered["JobLevel"].clip(lower=1)).astype(float)
     engineered["income_per_level"] = engineered["MonthlyIncome"] / level
     engineered["years_at_company_per_level"] = engineered["YearsAtCompany"] / level
-    engineered["years_in_role_ratio"] = (
-        (engineered["YearsInCurrentRole"] + eps)
-        / (engineered["YearsAtCompany"] + eps)
+    engineered["years_in_role_ratio"] = (engineered["YearsInCurrentRole"] + eps) / (
+        engineered["YearsAtCompany"] + eps
     )
     satisfaction_cols = [
         "EnvironmentSatisfaction",
@@ -173,9 +153,7 @@ def build_preprocessor(df: pd.DataFrame) -> ColumnTransformer:
         ]
     )
 
-    linear_numeric_pipeline = Pipeline(
-        steps=[("scaler", StandardScaler())]
-    )
+    linear_numeric_pipeline = Pipeline(steps=[("scaler", StandardScaler())])
 
     categorical_pipeline = Pipeline(
         steps=[
@@ -229,23 +207,120 @@ def hyperparameter_grid() -> List[Dict[str, object]]:
         {
             "clf__solver": ["lbfgs"],
             "clf__penalty": ["l2"],
-            "clf__C": [0.3, 1.0, 3.0],
+            "clf__C": [0.1, 0.3, 0.5, 1.0, 2.0, 3.0, 5.0],
             "clf__class_weight": [None, "balanced"],
         },
         {
             "clf__solver": ["liblinear"],
             "clf__penalty": ["l1", "l2"],
-            "clf__C": [0.3, 1.0, 3.0],
+            "clf__C": [0.1, 0.3, 0.5, 1.0, 2.0, 3.0, 5.0],
             "clf__class_weight": [None, "balanced"],
         },
         {
             "clf__solver": ["saga"],
             "clf__penalty": ["elasticnet"],
-            "clf__l1_ratio": [0.2, 0.4],
-            "clf__C": [0.3, 1.0],
-            "clf__class_weight": [None],
+            "clf__l1_ratio": [0.1, 0.2, 0.3, 0.5, 0.7],
+            "clf__C": [0.1, 0.3, 0.5, 1.0, 2.0, 3.0],
+            "clf__class_weight": [None, "balanced"],
         },
     ]
+
+
+def detailed_classification_report(
+    y_true: pd.Series,
+    y_pred: np.ndarray,
+    proba: np.ndarray,
+    dataset_name: str = "Dataset",
+) -> str:
+    """Generate a detailed classification report with nice formatting."""
+    from sklearn.metrics import (
+        accuracy_score,
+        precision_score,
+        recall_score,
+        f1_score,
+        roc_auc_score,
+        average_precision_score,
+        confusion_matrix,
+    )
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+
+    accuracy = accuracy_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred, zero_division=0)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+
+    # Metrics that require probabilities
+    roc_auc = roc_auc_score(y_true, proba)
+    avg_precision = average_precision_score(y_true, proba)
+
+    lines = []
+    lines.append("")
+    lines.append("=" * 70)
+    lines.append(f"  DETAILED CLASSIFICATION REPORT - {dataset_name}")
+    lines.append("=" * 70)
+    lines.append("")
+
+    # Confusion Matrix
+    lines.append("Confusion Matrix:")
+    lines.append("")
+    lines.append("                 Predicted")
+    lines.append("                 Stay    Leave")
+    lines.append("    Actual  Stay   {:>4}     {:>4}".format(tn, fp))
+    lines.append("           Leave   {:>4}     {:>4}".format(fn, tp))
+    lines.append("")
+
+    # Class-wise metrics
+    lines.append("Class-wise Metrics:")
+    lines.append("")
+    lines.append("              Precision    Recall    F1-Score    Support")
+    lines.append("    " + "-" * 58)
+
+    # Class 0 (Stay)
+    prec_0 = tn / (tn + fn) if (tn + fn) > 0 else 0.0
+    rec_0 = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+    f1_0 = 2 * prec_0 * rec_0 / (prec_0 + rec_0) if (prec_0 + rec_0) > 0 else 0.0
+    support_0 = int(tn + fp)
+    lines.append("    Stay        {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+        prec_0, rec_0, f1_0, support_0
+    ))
+
+    # Class 1 (Leave/Attrition)
+    prec_1 = precision
+    rec_1 = recall
+    f1_1 = f1
+    support_1 = int(tp + fn)
+    lines.append("    Leave       {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+        prec_1, rec_1, f1_1, support_1
+    ))
+    lines.append("    " + "-" * 58)
+
+    # Weighted average
+    total = support_0 + support_1
+    prec_avg = (prec_0 * support_0 + prec_1 * support_1) / total
+    rec_avg = (rec_0 * support_0 + rec_1 * support_1) / total
+    f1_avg = (f1_0 * support_0 + f1_1 * support_1) / total
+    lines.append("    avg/total   {:.4f}      {:.4f}      {:.4f}      {:>4}".format(
+        prec_avg, rec_avg, f1_avg, total
+    ))
+    lines.append("")
+
+    # Overall metrics
+    lines.append("Overall Metrics:")
+    lines.append("")
+    lines.append("    Accuracy:                {:.4f}".format(accuracy))
+    lines.append("    Precision (Leave):       {:.4f}".format(precision))
+    lines.append("    Recall (Leave):          {:.4f}".format(recall))
+    lines.append("    F1-Score (Leave):        {:.4f}".format(f1))
+    lines.append("    Specificity (Stay):      {:.4f}".format(specificity))
+    lines.append("    ROC-AUC:                 {:.4f}".format(roc_auc))
+    lines.append("    Average Precision:       {:.4f}".format(avg_precision))
+    lines.append("")
+    lines.append("=" * 70)
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def extract_coefficient_frame(estimator: ImbPipeline) -> pd.DataFrame:
@@ -270,7 +345,7 @@ def run_sampler_sweeps(
     y: pd.Series,
     preprocessor: ColumnTransformer,
     logger: logging.Logger,
-) -> Tuple[pd.DataFrame, pd.DataFrame, str, ImbPipeline]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, str, ImbPipeline, Dict[str, float]]:
     sampler_results: List[Dict[str, object]] = []
     cv_frames: List[pd.DataFrame] = []
 
@@ -278,14 +353,13 @@ def run_sampler_sweeps(
     best_estimator: Optional[ImbPipeline] = None
     best_score = -np.inf
 
-    cv = StratifiedKFold(
-        n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE
-    )
+    cv = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     scoring = {
         "f1": make_scorer(f1_score),
         "precision": make_scorer(precision_score, zero_division=0),
         "recall": make_scorer(recall_score),
         "roc_auc": "roc_auc",
+        "accuracy": "accuracy",
     }
 
     for sampler_name, sampler in sampler_space().items():
@@ -295,7 +369,7 @@ def run_sampler_sweeps(
             [
                 "building pipeline",
                 f"cv folds: {CV_FOLDS}",
-                "scoring: f1 + precision + recall + roc_auc",
+                "scoring: f1 + precision + recall + roc_auc + accuracy",
             ],
         )
         pipeline = build_pipeline(preprocessor, sampler)
@@ -311,17 +385,37 @@ def run_sampler_sweeps(
         grid.fit(X, y)
 
         best_idx = grid.best_index_
-        best_std = grid.cv_results_["std_test_f1"][best_idx]
         params_count = len(grid.cv_results_["params"])
 
+        # Collect detailed statistics for each metric
         sampler_results.append(
             {
                 "sampler": sampler_name,
-                "best_cv_f1": grid.best_score_,
-                "best_cv_f1_std": best_std,
-                "best_cv_precision": grid.cv_results_["mean_test_precision"][best_idx],
-                "best_cv_recall": grid.cv_results_["mean_test_recall"][best_idx],
-                "best_cv_auc": grid.cv_results_["mean_test_roc_auc"][best_idx],
+                # F1 statistics
+                "cv_f1_mean": grid.cv_results_["mean_test_f1"][best_idx],
+                "cv_f1_std": grid.cv_results_["std_test_f1"][best_idx],
+                "cv_f1_min": grid.cv_results_["mean_test_f1"][best_idx] - grid.cv_results_["std_test_f1"][best_idx],
+                "cv_f1_max": grid.cv_results_["mean_test_f1"][best_idx] + grid.cv_results_["std_test_f1"][best_idx],
+                # Precision statistics
+                "cv_precision_mean": grid.cv_results_["mean_test_precision"][best_idx],
+                "cv_precision_std": grid.cv_results_["std_test_precision"][best_idx],
+                "cv_precision_min": grid.cv_results_["mean_test_precision"][best_idx] - grid.cv_results_["std_test_precision"][best_idx],
+                "cv_precision_max": grid.cv_results_["mean_test_precision"][best_idx] + grid.cv_results_["std_test_precision"][best_idx],
+                # Recall statistics
+                "cv_recall_mean": grid.cv_results_["mean_test_recall"][best_idx],
+                "cv_recall_std": grid.cv_results_["std_test_recall"][best_idx],
+                "cv_recall_min": grid.cv_results_["mean_test_recall"][best_idx] - grid.cv_results_["std_test_recall"][best_idx],
+                "cv_recall_max": grid.cv_results_["mean_test_recall"][best_idx] + grid.cv_results_["std_test_recall"][best_idx],
+                # ROC-AUC statistics
+                "cv_roc_auc_mean": grid.cv_results_["mean_test_roc_auc"][best_idx],
+                "cv_roc_auc_std": grid.cv_results_["std_test_roc_auc"][best_idx],
+                "cv_roc_auc_min": grid.cv_results_["mean_test_roc_auc"][best_idx] - grid.cv_results_["std_test_roc_auc"][best_idx],
+                "cv_roc_auc_max": grid.cv_results_["mean_test_roc_auc"][best_idx] + grid.cv_results_["std_test_roc_auc"][best_idx],
+                # Accuracy statistics
+                "cv_accuracy_mean": grid.cv_results_["mean_test_accuracy"][best_idx],
+                "cv_accuracy_std": grid.cv_results_["std_test_accuracy"][best_idx],
+                "cv_accuracy_min": grid.cv_results_["mean_test_accuracy"][best_idx] - grid.cv_results_["std_test_accuracy"][best_idx],
+                "cv_accuracy_max": grid.cv_results_["mean_test_accuracy"][best_idx] + grid.cv_results_["std_test_accuracy"][best_idx],
                 "best_params": json.dumps(grid.best_params_),
             }
         )
@@ -332,13 +426,14 @@ def run_sampler_sweeps(
 
         log_block(
             logger,
-            f"📈 Sampler '{sampler_name}' summary",
+            f"📈 Sampler '{sampler_name}' detailed CV statistics",
             [
                 f"grid candidates tested: {params_count}",
-                f"best mean F1: {grid.best_score_:.4f} ± {best_std:.4f}",
-                f"best mean precision: {grid.cv_results_['mean_test_precision'][best_idx]:.4f}",
-                f"best mean recall: {grid.cv_results_['mean_test_recall'][best_idx]:.4f}",
-                f"best mean ROC-AUC: {grid.cv_results_['mean_test_roc_auc'][best_idx]:.4f}",
+                f"F1:        mean={grid.cv_results_['mean_test_f1'][best_idx]:.4f}, std={grid.cv_results_['std_test_f1'][best_idx]:.4f}",
+                f"Precision: mean={grid.cv_results_['mean_test_precision'][best_idx]:.4f}, std={grid.cv_results_['std_test_precision'][best_idx]:.4f}",
+                f"Recall:    mean={grid.cv_results_['mean_test_recall'][best_idx]:.4f}, std={grid.cv_results_['std_test_recall'][best_idx]:.4f}",
+                f"ROC-AUC:   mean={grid.cv_results_['mean_test_roc_auc'][best_idx]:.4f}, std={grid.cv_results_['std_test_roc_auc'][best_idx]:.4f}",
+                f"Accuracy:  mean={grid.cv_results_['mean_test_accuracy'][best_idx]:.4f}, std={grid.cv_results_['std_test_accuracy'][best_idx]:.4f}",
             ],
         )
 
@@ -349,7 +444,7 @@ def run_sampler_sweeps(
 
     summary_df = (
         pd.DataFrame(sampler_results)
-        .sort_values("best_cv_f1", ascending=False)
+        .sort_values("cv_f1_mean", ascending=False)
         .reset_index(drop=True)
     )
     cv_df = pd.concat(cv_frames, ignore_index=True)
@@ -358,20 +453,35 @@ def run_sampler_sweeps(
         raise RuntimeError("No best estimator found during sampler sweep.")
 
     best_summary = summary_df.loc[summary_df["sampler"] == best_name].iloc[0]
+
+    # Collect CV metrics for the best model
+    best_cv_metrics = {
+        "f1_mean": float(best_summary["cv_f1_mean"]),
+        "f1_std": float(best_summary["cv_f1_std"]),
+        "precision_mean": float(best_summary["cv_precision_mean"]),
+        "precision_std": float(best_summary["cv_precision_std"]),
+        "recall_mean": float(best_summary["cv_recall_mean"]),
+        "recall_std": float(best_summary["cv_recall_std"]),
+        "roc_auc_mean": float(best_summary["cv_roc_auc_mean"]),
+        "roc_auc_std": float(best_summary["cv_roc_auc_std"]),
+        "accuracy_mean": float(best_summary["cv_accuracy_mean"]),
+        "accuracy_std": float(best_summary["cv_accuracy_std"]),
+    }
+
     log_block(
         logger,
-        "🏆 Best sampler locked",
+        "🏆 Best sampler locked with detailed CV metrics",
         [
             f"name: {best_name}",
-            f"mean CV F1: {best_summary['best_cv_f1']:.4f}",
-            f"mean CV precision: {best_summary['best_cv_precision']:.4f}",
-            f"mean CV recall: {best_summary['best_cv_recall']:.4f}",
-            f"mean CV ROC-AUC: {best_summary['best_cv_auc']:.4f}",
-            "CV decision threshold: 0.50 (model default)",
+            f"F1:        {best_cv_metrics['f1_mean']:.4f} ± {best_cv_metrics['f1_std']:.4f}",
+            f"Precision: {best_cv_metrics['precision_mean']:.4f} ± {best_cv_metrics['precision_std']:.4f}",
+            f"Recall:    {best_cv_metrics['recall_mean']:.4f} ± {best_cv_metrics['recall_std']:.4f}",
+            f"ROC-AUC:   {best_cv_metrics['roc_auc_mean']:.4f} ± {best_cv_metrics['roc_auc_std']:.4f}",
+            f"Accuracy:  {best_cv_metrics['accuracy_mean']:.4f} ± {best_cv_metrics['accuracy_std']:.4f}",
         ],
     )
 
-    return summary_df, cv_df, best_name, best_estimator
+    return summary_df, cv_df, best_name, best_estimator, best_cv_metrics
 
 
 def evaluate_on_holdout(
@@ -380,6 +490,7 @@ def evaluate_on_holdout(
     y_test: pd.Series,
     identifiers: pd.Series,
     logger: logging.Logger,
+    dataset_name: str = "Test Set",
 ) -> Dict[str, object]:
     proba = model.predict_proba(X_test)[:, 1]
     preds_default = model.predict(X_test)
@@ -402,10 +513,19 @@ def evaluate_on_holdout(
     precision, recall, pr_thresholds = precision_recall_curve(y_test, proba)
     best_precision = precision_score(y_test, best_preds, zero_division=0)
     best_recall = recall_score(y_test, best_preds)
+    best_accuracy = accuracy_score(y_test, best_preds)
     roc_auc = roc_auc_score(y_test, proba)
     avg_precision = average_precision_score(y_test, proba)
     fpr, tpr, roc_thresholds = roc_curve(y_test, proba)
     prob_true, prob_pred = calibration_curve(y_test, proba, n_bins=10)
+
+    # Generate detailed classification report
+    detailed_report_default = detailed_classification_report(
+        y_test, preds_default, proba, f"{dataset_name} (Default Threshold 0.50)"
+    )
+    detailed_report_best = detailed_classification_report(
+        y_test, best_preds, proba, f"{dataset_name} (Best Threshold {best_threshold:.2f})"
+    )
 
     predictions = pd.DataFrame(
         {
@@ -434,6 +554,7 @@ def evaluate_on_holdout(
         "pr_thresholds": pr_thresholds.tolist(),
         "best_precision": best_precision,
         "best_recall": best_recall,
+        "best_accuracy": best_accuracy,
         "predictions": predictions,
         "threshold_frame": threshold_frame,
         "roc_auc": roc_auc,
@@ -446,20 +567,138 @@ def evaluate_on_holdout(
         "roc_thresholds": roc_thresholds.tolist(),
         "calibration_prob_true": prob_true.tolist(),
         "calibration_prob_pred": prob_pred.tolist(),
+        "detailed_report_default": detailed_report_default,
+        "detailed_report_best": detailed_report_best,
     }
     log_block(
         logger,
-        "🧾 Holdout metrics",
+        f"🧾 {dataset_name} metrics summary",
         [
             f"ROC-AUC: {roc_auc:.4f}",
             f"Average precision: {avg_precision:.4f}",
             f"Default threshold (0.50) F1: {default_f1:.4f}",
             f"Default precision / recall / accuracy: {default_precision:.4f} / {default_recall:.4f} / {default_accuracy:.4f}",
             f"Best threshold ({best_threshold:.2f}) F1: {best_f1:.4f}",
-            f"Best precision / recall: {best_precision:.4f} / {best_recall:.4f}",
+            f"Best precision / recall / accuracy: {best_precision:.4f} / {best_recall:.4f} / {best_accuracy:.4f}",
         ],
     )
+
+    # Log detailed classification reports
+    logger.info(detailed_report_default)
+    logger.info(detailed_report_best)
+
     return report
+
+
+def plot_cv_vs_test_metrics(
+    cv_metrics: Dict[str, float],
+    test_metrics: Dict[str, float],
+    path: Path,
+) -> None:
+    """Compare CV and test metrics side by side."""
+    metrics_names = ["F1", "Precision", "Recall", "ROC-AUC", "Accuracy"]
+    cv_values = [
+        cv_metrics["f1_mean"],
+        cv_metrics["precision_mean"],
+        cv_metrics["recall_mean"],
+        cv_metrics["roc_auc_mean"],
+        cv_metrics["accuracy_mean"],
+    ]
+    cv_stds = [
+        cv_metrics["f1_std"],
+        cv_metrics["precision_std"],
+        cv_metrics["recall_std"],
+        cv_metrics["roc_auc_std"],
+        cv_metrics["accuracy_std"],
+    ]
+    test_values = [
+        test_metrics["best_threshold_f1"],
+        test_metrics["best_precision"],
+        test_metrics["best_recall"],
+        test_metrics["roc_auc"],
+        test_metrics["best_accuracy"],
+    ]
+
+    x = np.arange(len(metrics_names))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars1 = ax.bar(x - width/2, cv_values, width, label="CV (mean)",
+                   color="#4c72b0", yerr=cv_stds, capsize=5)
+    bars2 = ax.bar(x + width/2, test_values, width, label="Test (best threshold)",
+                   color="#55a868")
+
+    ax.set_ylabel("Score")
+    ax.set_xlabel("Metrics")
+    ax.set_title("CV vs Test Set Performance Comparison")
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics_names)
+    ax.legend()
+    ax.set_ylim(0, 1.05)
+
+    # Add value labels on bars
+    for bars in [bars1, bars2]:
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{height:.3f}',
+                   ha='center', va='bottom', fontsize=8)
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
+def plot_metrics_detailed_comparison(
+    cv_metrics: Dict[str, float],
+    test_metrics: Dict[str, float],
+    path: Path,
+) -> None:
+    """Detailed comparison showing mean ± std for CV and point estimate for test."""
+    metrics_names = ["F1", "Precision", "Recall", "ROC-AUC", "Accuracy"]
+
+    fig, axes = plt.subplots(1, 5, figsize=(18, 4))
+
+    for idx, metric in enumerate(["f1", "precision", "recall", "roc_auc", "accuracy"]):
+        ax = axes[idx]
+
+        cv_mean = cv_metrics[f"{metric}_mean"]
+        cv_std = cv_metrics[f"{metric}_std"]
+
+        if metric == "f1":
+            test_val = test_metrics["best_threshold_f1"]
+        elif metric == "precision":
+            test_val = test_metrics["best_precision"]
+        elif metric == "recall":
+            test_val = test_metrics["best_recall"]
+        elif metric == "accuracy":
+            test_val = test_metrics["best_accuracy"]
+        else:  # roc_auc
+            test_val = test_metrics["roc_auc"]
+
+        # Plot CV as error bar
+        ax.errorbar([0], [cv_mean], yerr=[cv_std], fmt='o', markersize=10,
+                   capsize=10, capthick=2, color="#4c72b0", label="CV")
+        # Plot test as point
+        ax.plot([1], [test_val], 'o', markersize=10, color="#55a868", label="Test")
+
+        ax.set_xlim(-0.5, 1.5)
+        ax.set_ylim(0, 1.05)
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(["CV", "Test"])
+        ax.set_ylabel("Score")
+        ax.set_title(metrics_names[idx])
+        ax.grid(axis='y', alpha=0.3)
+
+        # Add value annotations
+        ax.text(0, cv_mean + cv_std + 0.02, f"{cv_mean:.3f}±{cv_std:.3f}",
+               ha='center', fontsize=8)
+        ax.text(1, test_val + 0.02, f"{test_val:.3f}", ha='center', fontsize=8)
+
+    fig.suptitle("Detailed Metrics Comparison: CV (mean±std) vs Test", fontsize=14)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
 
 
 def plot_sampler_summary(summary_df: pd.DataFrame, path: Path) -> None:
@@ -467,7 +706,7 @@ def plot_sampler_summary(summary_df: pd.DataFrame, path: Path) -> None:
     sns.barplot(
         data=summary_df,
         x="sampler",
-        y="best_cv_f1",
+        y="cv_f1_mean",
         hue="sampler",
         palette="viridis",
         legend=False,
@@ -586,7 +825,9 @@ def plot_probability_density(predictions: pd.DataFrame, path: Path) -> None:
     plt.close()
 
 
-def plot_calibration(prob_true: Iterable[float], prob_pred: Iterable[float], path: Path) -> None:
+def plot_calibration(
+    prob_true: Iterable[float], prob_pred: Iterable[float], path: Path
+) -> None:
     plt.figure(figsize=(5, 4))
     plt.plot(prob_pred, prob_true, marker="o", label="model calibration")
     plt.plot([0, 1], [0, 1], linestyle="--", color="gray", label="perfect calibration")
@@ -664,34 +905,65 @@ def persist_artifacts(
     cv_df: pd.DataFrame,
     evaluation: Dict[str, object],
     coef_frame: pd.DataFrame,
+    cv_metrics: Dict[str, float],
     logger: logging.Logger,
 ) -> None:
     DATA_ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     FIG_ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Save data tables
     summary_df.to_csv(DATA_ARTIFACT_DIR / "sampler_summary.csv", index=False)
     cv_df.to_csv(DATA_ARTIFACT_DIR / "sampler_grid_results.csv", index=False)
-    coef_frame.to_csv(
-        DATA_ARTIFACT_DIR / "best_model_coefficients.csv", index=False
-    )
+    coef_frame.to_csv(DATA_ARTIFACT_DIR / "best_model_coefficients.csv", index=False)
     evaluation["predictions"].to_csv(
-        DATA_ARTIFACT_DIR / "best_model_holdout_predictions.csv",
+        DATA_ARTIFACT_DIR / "best_model_test_predictions.csv",
         index=False,
     )
     evaluation["threshold_frame"].to_csv(
         DATA_ARTIFACT_DIR / "threshold_sweep.csv", index=False
     )
-    with open(DATA_ARTIFACT_DIR / "holdout_report.json", "w", encoding="utf-8") as fp:
+
+    # Save detailed JSON report
+    with open(DATA_ARTIFACT_DIR / "test_report.json", "w", encoding="utf-8") as fp:
         serializable = {
             "default_threshold_f1": evaluation["default_threshold_f1"],
+            "default_precision": evaluation["default_precision"],
+            "default_recall": evaluation["default_recall"],
+            "default_accuracy": evaluation["default_accuracy"],
             "best_threshold": evaluation["best_threshold"],
             "best_threshold_f1": evaluation["best_threshold_f1"],
+            "best_precision": evaluation["best_precision"],
+            "best_recall": evaluation["best_recall"],
+            "best_accuracy": evaluation["best_accuracy"],
+            "roc_auc": evaluation["roc_auc"],
+            "average_precision": evaluation["average_precision"],
             "confusion_matrix": evaluation["confusion_matrix"],
         }
         json.dump(serializable, fp, indent=2)
 
+    # Save CV metrics
+    with open(DATA_ARTIFACT_DIR / "cv_metrics.json", "w", encoding="utf-8") as fp:
+        json.dump(cv_metrics, fp, indent=2)
+
+    # Save detailed classification reports to text files
+    with open(DATA_ARTIFACT_DIR / "detailed_report_default.txt", "w", encoding="utf-8") as fp:
+        fp.write(evaluation["detailed_report_default"])
+    with open(DATA_ARTIFACT_DIR / "detailed_report_best.txt", "w", encoding="utf-8") as fp:
+        fp.write(evaluation["detailed_report_best"])
+
+    # Generate all plots
     plot_sampler_summary(summary_df, FIG_ARTIFACT_DIR / "sampler_f1.png")
+    plot_cv_vs_test_metrics(
+        cv_metrics,
+        evaluation,
+        FIG_ARTIFACT_DIR / "cv_vs_test_metrics.png",
+    )
+    plot_metrics_detailed_comparison(
+        cv_metrics,
+        evaluation,
+        FIG_ARTIFACT_DIR / "metrics_detailed_comparison.png",
+    )
     plot_threshold_curve(
         evaluation["threshold_frame"],
         evaluation["best_threshold"],
@@ -731,6 +1003,7 @@ def persist_artifacts(
         cv_df,
         FIG_ARTIFACT_DIR / "cv_sampler_heatmap.png",
     )
+
     log_block(
         logger,
         "💾 Artifacts persisted",
@@ -738,6 +1011,7 @@ def persist_artifacts(
             f"data tables stored under: {DATA_ARTIFACT_DIR}",
             f"figures stored under: {FIG_ARTIFACT_DIR}",
             f"models stored under: {MODEL_ARTIFACT_DIR}",
+            "detailed classification reports saved as .txt files",
         ],
     )
 
@@ -791,25 +1065,27 @@ def main() -> None:
             X_test = X_test.drop(columns=[ID_COLUMN])
 
         preprocessor = build_preprocessor(train_df)
-        summary_df, cv_df, best_sampler_name, best_estimator = run_sampler_sweeps(
+        summary_df, cv_df, best_sampler_name, best_estimator, cv_metrics = run_sampler_sweeps(
             X_train, y_train, preprocessor, logger
         )
 
         coef_frame = extract_coefficient_frame(best_estimator)
         evaluation = evaluate_on_holdout(
-            best_estimator, X_test, y_test, identifiers, logger
+            best_estimator, X_test, y_test, identifiers, logger, dataset_name="Test Set"
         )
-        persist_artifacts(summary_df, cv_df, evaluation, coef_frame, logger)
+        persist_artifacts(summary_df, cv_df, evaluation, coef_frame, cv_metrics, logger)
         model_path = MODEL_ARTIFACT_DIR / f"stable_lr_best_{best_sampler_name}.pkl"
         joblib.dump(best_estimator, model_path)
         log_block(
             logger,
-            "✅ Run complete",
+            "✅ Run complete - Summary",
             [
                 f"best sampler: {best_sampler_name}",
-                f"best CV F1: {summary_df.loc[summary_df['sampler'] == best_sampler_name, 'best_cv_f1'].iloc[0]:.4f}",
-                f"holdout ROC-AUC: {evaluation['roc_auc']:.4f}",
-                f"best threshold ({evaluation['best_threshold']:.2f}) F1: {evaluation['best_threshold_f1']:.4f}",
+                f"CV F1: {cv_metrics['f1_mean']:.4f} ± {cv_metrics['f1_std']:.4f}",
+                f"CV ROC-AUC: {cv_metrics['roc_auc_mean']:.4f} ± {cv_metrics['roc_auc_std']:.4f}",
+                f"Test ROC-AUC: {evaluation['roc_auc']:.4f}",
+                f"Test F1 (best threshold {evaluation['best_threshold']:.2f}): {evaluation['best_threshold_f1']:.4f}",
+                f"Test Accuracy (best threshold): {evaluation['best_accuracy']:.4f}",
                 f"model stored at: {model_path}",
             ],
         )

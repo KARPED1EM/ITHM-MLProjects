@@ -1,0 +1,32 @@
+
+======================================================================
+  DETAILED CLASSIFICATION REPORT - Test Set (Best Threshold 0.40)
+======================================================================
+
+Confusion Matrix:
+
+                 Predicted
+                 Stay    Leave
+    Actual  Stay    277       20
+           Leave     20       33
+
+Class-wise Metrics:
+
+              Precision    Recall    F1-Score    Support
+    ----------------------------------------------------------
+    Stay        0.9327      0.9327      0.9327       297
+    Leave       0.6226      0.6226      0.6226        53
+    ----------------------------------------------------------
+    avg/total   0.8857      0.8857      0.8857       350
+
+Overall Metrics:
+
+    Accuracy:                0.8857
+    Precision (Leave):       0.6226
+    Recall (Leave):          0.6226
+    F1-Score (Leave):        0.6226
+    Specificity (Stay):      0.9327
+    ROC-AUC:                 0.8850
+    Average Precision:       0.6779
+
+======================================================================
