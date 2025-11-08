@@ -12,7 +12,10 @@ from logUtil import Logger
 import pandas as pd
 import joblib
 from sklearn.preprocessing import StandardScaler
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 
 def model_train(data_x, data_y, logger):
 
@@ -66,12 +69,15 @@ def model_train(data_x, data_y, logger):
             random_state=22,
             class_weight='balanced',
             max_iter=1500,
-            C=0.5
+            C=0.5,
+            penalty="l2",
+            solver='sag'
         )
     }
 
     results = {}
     trained_models = {} # 新增：存储训练好的模型对象
+    y_pred_proba_dict = {}
     for name, clf in classifiers.items():
         logger.info(f"训练 {name}...")
 
@@ -81,7 +87,7 @@ def model_train(data_x, data_y, logger):
         # 预测
         y_pred = clf.predict(x_test)
         y_pred_proba = clf.predict_proba(x_test)[:, 1]
-
+        y_pred_proba_dict[name] = y_pred_proba # 保存概率预测
         # 评估指标
         accuracy = accuracy_score(y_test, y_pred)
         auc_score = roc_auc_score(y_test, y_pred_proba)
@@ -105,6 +111,9 @@ def model_train(data_x, data_y, logger):
 
     logger.info("算法性能排名:")
     logger.info(f"\n{results_df}")
+
+    # ============ 新增：绘制图表 ============
+    plot_model_results(results_df, y_test, y_pred_proba_dict, logger)
 
     # 6. 选出最佳模型 (假设以 AUC 为主要指标)
     # 处理可能存在的 NaN AUC 值
@@ -148,6 +157,65 @@ def dem01_use_mode(data_x, data_y, logger):
     print(cv_model.best_estimator_)
     print(accuracy_score(y_test, y_pre2))
     print(auc)
+
+
+def plot_model_results(results_df, y_test, y_pred_proba_dict, logger):
+    """绘制模型比较图表"""
+
+    # 创建图表
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig.suptitle('模型性能比较', fontsize=16, fontweight='bold')
+
+    # 1. 模型指标对比柱状图
+    metrics_to_plot = ['accuracy', 'auc', 'f1', 'precision', 'recall']
+    results_df[metrics_to_plot].plot(kind='bar', ax=axes[0, 0])
+    axes[0, 0].set_title('模型性能指标对比')
+    axes[0, 0].set_ylabel('分数')
+    axes[0, 0].tick_params(axis='x', rotation=45)
+    axes[0, 0].legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    axes[0, 0].grid(True, alpha=0.3)
+
+    # 2. AUC排名图
+    sorted_auc = results_df['auc'].sort_values(ascending=True)
+    axes[0, 1].barh(range(len(sorted_auc)), sorted_auc.values)
+    axes[0, 1].set_yticks(range(len(sorted_auc)))
+    axes[0, 1].set_yticklabels(sorted_auc.index)
+    axes[0, 1].set_title('模型AUC排名')
+    axes[0, 1].set_xlabel('AUC Score')
+
+    # 在柱子上添加数值
+    for i, v in enumerate(sorted_auc.values):
+        axes[0, 1].text(v + 0.01, i, f'{v:.3f}', va='center')
+
+    # 3. ROC曲线
+    from sklearn.metrics import roc_curve
+    for name, y_pred_proba in y_pred_proba_dict.items():
+        fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+        auc_score = roc_auc_score(y_test, y_pred_proba)
+        axes[1, 0].plot(fpr, tpr, label=f'{name} (AUC = {auc_score:.3f})')
+
+    axes[1, 0].plot([0, 1], [0, 1], 'k--', label='随机分类器')
+    axes[1, 0].set_xlabel('假正率 (False Positive Rate)')
+    axes[1, 0].set_ylabel('真正率 (True Positive Rate)')
+    axes[1, 0].set_title('ROC曲线比较')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+
+    # 4. 热力图 - 相关性矩阵
+    metrics_corr = results_df[metrics_to_plot].corr()
+    sns.heatmap(metrics_corr, annot=True, cmap='coolwarm', center=0,
+                ax=axes[1, 1], square=True)
+    axes[1, 1].set_title('指标相关性热力图')
+
+    plt.tight_layout()
+
+    # 保存图片
+    plt.savefig('../model/model_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    logger.info("模型比较图表已保存至 '../model/model_comparison.png'")
+
+
 
 class PowerLoadModel(object):
     def __init__(self, filename):

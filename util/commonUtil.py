@@ -43,7 +43,8 @@ def data_preprocessing(path):
                        'StockOptionLevel','NumCompaniesWorked','JobSatisfaction',
                        'EnvironmentSatisfaction','YearsWithCurrManager','YearsInCurrentRole',
                        'JobInvolvement','TrainingTimesLastYear','YearsSinceLastPromotion',
-                       'RelationshipSatisfaction','WorkLifeBalance','JobLevel','Education','MaritalStatus_Single']
+                       'RelationshipSatisfaction','WorkLifeBalance','JobLevel','Education','MaritalStatus_Single',
+                       'MaritalStatus_Divorced','MaritalStatus_Married']
     result_x = df_encoded[feature_columns]
     result_y = y
 
@@ -78,14 +79,15 @@ def pre_data_preprocessing(path):
                        'StockOptionLevel','NumCompaniesWorked','JobSatisfaction',
                        'EnvironmentSatisfaction','YearsWithCurrManager','YearsInCurrentRole',
                        'JobInvolvement','TrainingTimesLastYear','YearsSinceLastPromotion',
-                       'RelationshipSatisfaction','WorkLifeBalance','JobLevel','Education','MaritalStatus_Single']
+                       'RelationshipSatisfaction','WorkLifeBalance','JobLevel','Education','MaritalStatus_Single',
+                       'MaritalStatus_Divorced','MaritalStatus_Married']
     result_x = df_encoded[feature_columns]
     result_y = y
 
     return result_x, result_y
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 # #     # input_file = pd.read_csv('../data/train.csv')
 # #     result = data_preprocessing('../data/train.csv')
-#     result = pre_data_preprocessing('../data/test.csv')
-#     print(result)
+    result = pre_data_preprocessing('../data/test.csv')
+    print(result)
